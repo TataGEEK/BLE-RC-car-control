@@ -163,45 +163,35 @@ String ovladani()
 {
     readMPU9250();
 
+    instrukce = "";
+    
     if (((int)1000 * IMU.ax > -300) & ((int)1000 * IMU.ax < 300)) {
-      if (last_instruction != instrukce) {
-        tft.fillScreen(TFT_BLACK);
-        last_instruction = instrukce;
-      }
       tft.fillRect(60, 20, 40, 40, TFT_BLUE);
-      instrukce = "G";
-      return String(instrukce);
-    }
+      instrukce = instrukce + "G";
+      }
     if ((int)1000 * IMU.ay < -200) {
-      if (last_instruction != instrukce) {
-        tft.fillScreen(TFT_BLACK);
-        last_instruction = instrukce;
-      }
       tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_WHITE);
-      instrukce = "L";
-      return String(instrukce);
+      instrukce = instrukce + "L";
     } else if ((int)1000 * IMU.ay > 200) {
-      if (last_instruction != instrukce) {
-        tft.fillScreen(TFT_BLACK);
-        last_instruction = instrukce;
-      }
       tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_WHITE);
-      instrukce = "R";
-      return String(instrukce);
+      instrukce = instrukce + "R";
     } else {
-      if (last_instruction != instrukce) {
-        tft.fillScreen(TFT_BLACK);
-        last_instruction = instrukce;
-      }
       tft.fillRect(60, 20, 40, 40, TFT_WHITE);
-      instrukce = "F";
-      return String(instrukce);
+      instrukce = instrukce + "F";
     }
+
+    //if (last_instruction != instrukce) {
+        //tft.fillScreen(TFT_BLACK);
+        //last_instruction = instrukce;
+        return String(instrukce);
+    //}
+ 
+ 
 }
 
 
 void loop() {
-//pouze pro ladění, pak přesunout na psávné místo
+//pouze pro ladění, pak přesunout na správné místo
 instrukce = ovladani();
 tft.drawCentreString(getVoltage(), 130, 70, 1); // Next size up font 2
 
