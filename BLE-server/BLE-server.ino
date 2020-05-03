@@ -107,6 +107,7 @@ void setup() {
   
   tft.init();
   tft.setRotation(1);
+  tft.fillScreen(TFT_BLACK);
 
   targetTime = millis() + 1000;
 
@@ -191,10 +192,53 @@ String ovladani()
 
 
 void loop() {
-//pouze pro ladění, pak přesunout na správné místo
-instrukce = ovladani();
+
+  if (digitalRead(TP_PIN_PIN) == HIGH) {
+    if (!pressed) {
+      initial = 1;
+      targetTime = millis() + 1000;
+      func_select = func_select + 1 > 1 ? 0 : func_select + 1; //Část >1 definuje počet obrazovek, mezikterými se přepínám
+      digitalWrite(LED_PIN, HIGH);
+      delay(100);
+      digitalWrite(LED_PIN, LOW);
+      pressed = true;
+      pressedTime = millis();
+    } else {
+      if (millis() - pressedTime > 3000) {
+        tft.fillScreen(TFT_BLACK);
+        tft.drawString("Dlouhý stisk",  50, tft.height() / 2 - 10);
+        tft.drawString("Go to Sleep",  53, tft.height() / 2 + 10);
+        Serial.println("Go to Sleep");
+        delay(3000);
+        tft.writecommand(ST7735_SLPIN);
+        tft.writecommand(ST7735_DISPOFF);
+        esp_sleep_enable_ext1_wakeup(GPIO_SEL_33, ESP_EXT1_WAKEUP_ANY_HIGH);
+        esp_deep_sleep_start();
+      }
+    }
+  } else {
+    pressed = false;
+  }
+
+  switch (func_select) {
+    case 0:
+      obrazovka_1();
+      break;
+    case 1:
+      obrazovka_2();
+      break;
+    default:
+      break;
+  }
+}
+
+void obrazovka_1() {
+
+tft.fillScreen(TFT_BLACK);
+
 tft.drawCentreString(getVoltage(), 130, 70, 1); // Next size up font 2
 
+readMPU9250();
 snprintf(buff, sizeof(buff), "x %.2f  %.2f  %.2f", (int)1000 * IMU.ax, IMU.gx, IMU.mx);
     tft.drawString(buff, 0, 70);
 
@@ -205,33 +249,12 @@ snprintf(buff, sizeof(buff), "x %.2f  %.2f  %.2f", (int)1000 * IMU.ax, IMU.gx, I
       digitalWrite(LED_PIN, LOW);
     }
 
-    if (digitalRead(TP_PIN_PIN) == HIGH) {
-      if (!pressed) {
-        initial = 1;
-        targetTime = millis() + 1000;
-        func_select = func_select + 1 > 3 ? 0 : func_select + 1;
-        digitalWrite(LED_PIN, HIGH);
-        delay(100);
-        digitalWrite(LED_PIN, LOW);
-        pressed = true;
-        pressedTime = millis();
-      } else {
-        if (millis() - pressedTime > 3000) {
-          tft.fillScreen(TFT_BLACK);
-          tft.fillScreen(TFT_BLACK);
-          tft.drawString("Dlouhý stisk",  50, tft.height() / 2 - 10);
-          tft.drawString("Go to Sleep",  53, tft.height() / 2 + 10);
-          Serial.println("Go to Sleep");
-          delay(3000);
-          tft.writecommand(ST7735_SLPIN);
-          tft.writecommand(ST7735_DISPOFF);
-          esp_sleep_enable_ext1_wakeup(GPIO_SEL_33, ESP_EXT1_WAKEUP_ANY_HIGH);
-          esp_deep_sleep_start();
-        }
-      }
-    } else {
-      pressed = false;
-    }
+}
+
+void obrazovka_2() { 
+
+//pouze pro ladění, pak přesunout na správné místo
+instrukce = ovladani();
   
   // notify changed value
   if (deviceConnected) {
