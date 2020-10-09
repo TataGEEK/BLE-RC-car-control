@@ -48,6 +48,7 @@ int vref = 1100;
 #include "sensor.h"
 char buff[256];
 String instrukce;
+String smer;
 String last_instruction;
 
 /****************/
@@ -101,15 +102,13 @@ class MyServerCallbacks: public BLEServerCallbacks {
 
 
 
-void setup(void) {
+void setup() {
   Serial.begin(115200);
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   
   tft.init();
   tft.setRotation(1);
-  tft.setSwapBytes(true);
-  tft.fillScreen(TFT_BLACK);
-    
+
   targetTime = millis() + 1000;
 
   pinMode(TP_PIN_PIN, INPUT);
@@ -161,108 +160,85 @@ String getVoltage()
     return String(battery_voltage) + " V";
 }
 
-void zobraz_ovladani(String instrukce) {
-
-    if (instrukce.indexOf("G") >= 0) {
-      tft.fillRect(60, 20, 40, 40, TFT_BLUE);
-    }
-    else if (instrukce.indexOf("F") >= 0) {
-      tft.fillRect(60, 20, 40, 40, TFT_WHITE);                //zobrazíme F
-    }
- 
-    if (instrukce.indexOf("L") >= 0) {
-      tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_WHITE);    //zobrazíme L
-      tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_BLACK); //mažeme R
-    } 
-    if (instrukce.indexOf("R") >= 0) {
-      tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_WHITE); //zobrazíme R
-      tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_BLACK);    //mažeme L
-    }
-
-//mažeme
-    if ((instrukce.indexOf("R") < 0) & (instrukce.indexOf("L") < 0)) {
-      tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_BLACK);
-      tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_BLACK);
-    }
-   if ((instrukce.indexOf("F") < 0) & (instrukce.indexOf("G") < 0)) {
-      tft.fillRect(60, 20, 40, 40, TFT_BLACK);                //mažeme F + G
-    }
-
-  
-}
-
 String ovladani()
 {
-    readMPU9250();
+  smer = "";    
 
-    instrukce = "";
-    
-    if (((int)1000 * IMU.ax > -300) & ((int)1000 * IMU.ax < 300)) {instrukce = instrukce + "G";}
-    
-    if ((int)1000 * IMU.ay < -200) {instrukce = instrukce + "L";}
-    else if ((int)1000 * IMU.ay > 200) {instrukce = instrukce + "R";}
-    else {instrukce = instrukce + "F";}
+//zastavíme
+  if (((int)1000 * IMU.ax > -300) & ((int)1000 * IMU.ax < 300)) {
+    smer = smer + "H";
+  }
+//jedeme zpět
+  if (((int)1000 * IMU.ax < -300)) {
+    smer = smer + "B";
+  }
+//jedeme dopředu
+  if (((int)1000 * IMU.ax > 300)) {
+    smer = smer + "F";
+  }
+  
+//zatočíme vlevo
+  if ((int)1000 * IMU.ay < -200) {
+    smer = smer + "L";
+  }
+//zatočíme vpravo
+  if ((int)1000 * IMU.ay > 200) {
+    smer = smer + "R";
+  }
+//jedeme rovně
+  if (((int)1000 * IMU.ay <= 200) & ((int)1000 * IMU.ay >= -200)) {
+    smer = smer + "S";
+  }
 
-    if (last_instruction != instrukce) {
-      last_instruction = instrukce;
-      return String(instrukce);
-    }
- 
+
+  return String(smer);
+        
 }
 
 
 void loop() {
 
-  if (digitalRead(TP_PIN_PIN) == HIGH) {
-    if (!pressed) {
-      initial = 1;
-      targetTime = millis() + 1000;
-      func_select = func_select + 1 > 1 ? 0 : func_select + 1; //Část >1 definuje počet obrazovek, mezikterými se přepínám
-      digitalWrite(LED_PIN, HIGH);
-      delay(100);
-      digitalWrite(LED_PIN, LOW);
-      pressed = true;
-      pressedTime = millis();
-    } else {
-      if (millis() - pressedTime > 3000) {
-        tft.fillScreen(TFT_BLACK);
-        tft.drawString("Dlouhý stisk",  50, tft.height() / 2 - 10);
-        tft.drawString("Go to Sleep",  53, tft.height() / 2 + 10);
-        Serial.println("Go to Sleep");
-        delay(3000);
-        tft.writecommand(ST7735_SLPIN);
-        tft.writecommand(ST7735_DISPOFF);
-        esp_sleep_enable_ext1_wakeup(GPIO_SEL_33, ESP_EXT1_WAKEUP_ANY_HIGH);
-        esp_deep_sleep_start();
-      }
-    }
-  } else {
-    pressed = false;
+  readMPU9250();
+//pouze pro ladění, pak přesunout na psávné místo
+instrukce = ovladani();
+
+  if (last_instruction != instrukce) {
+    tft.fillScreen(TFT_BLACK);
+    last_instruction = instrukce;
+    Serial.println(instrukce);
   }
 
-  switch (func_select) {
-    case 0:
-      obrazovka_1();
-      break;
-    case 1:
-      obrazovka_2();
-      break;
-    default:
-      break;
-  }
+//zatočíme vlevo
+if(instrukce.indexOf("L") >= 0){
+  tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_WHITE); //left triangle
+  tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_BLACK); //right triangle
 }
-
-void obrazovka_1() {
-
-//pouze pro ladění, pak přesunout na správné místo
-ovladani();
-zobraz_ovladani(instrukce);
+//zatočíme vpravo
+if(instrukce.indexOf("R") >= 0){
+  tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_BLACK); //left triangle
+  tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_WHITE); //right triangle
+}
+if(instrukce.indexOf("S") >= 0){
+  tft.fillTriangle(10, 40, 30, 20, 30, 60, TFT_BLACK); //left triangle
+  tft.fillTriangle(150, 40, 120, 20, 120, 60, TFT_BLACK); //right triangle
+}
+if(instrukce.indexOf("B") >= 0){
+  tft.fillTriangle(80, 20, 60, 40, 100, 40, TFT_BLACK);
+  tft.fillTriangle(80, 60, 60, 40, 100, 40, TFT_WHITE);
+}
+if(instrukce.indexOf("F") >= 0){
+  tft.fillTriangle(80, 20, 60, 40, 100, 40, TFT_WHITE);
+  tft.fillTriangle(80, 60, 60, 40, 100, 40, TFT_BLACK);
+}
+if(instrukce.indexOf("H") >= 0){
+  tft.fillTriangle(80, 20, 60, 40, 100, 40, TFT_BLACK);
+  tft.fillTriangle(80, 60, 60, 40, 100, 40, TFT_BLACK);
+}
 
 tft.drawCentreString(getVoltage(), 130, 70, 1); // Next size up font 2
 
-//readMPU9250();
-//snprintf(buff, sizeof(buff), "x %.2f  %.2f  %.2f", (int)1000 * IMU.ax, IMU.gx, IMU.mx);
-    //tft.drawString(buff, 0, 70);
+snprintf(buff, sizeof(buff), "x %.2f  %.2f  %.2f", (int)1000 * IMU.ax, IMU.gx, IMU.mx);
+    tft.drawString(buff, 0, 70);
 
     // klepnutí na hodinky blikne diodou
     if (IMU.gx > 200) {
@@ -271,16 +247,39 @@ tft.drawCentreString(getVoltage(), 130, 70, 1); // Next size up font 2
       digitalWrite(LED_PIN, LOW);
     }
 
-}
-
-void obrazovka_2() { 
-
-
+    if (digitalRead(TP_PIN_PIN) == HIGH) {
+      if (!pressed) {
+        initial = 1;
+        targetTime = millis() + 1000;
+        func_select = func_select + 1 > 3 ? 0 : func_select + 1;
+        digitalWrite(LED_PIN, HIGH);
+        delay(100);
+        digitalWrite(LED_PIN, LOW);
+        pressed = true;
+        pressedTime = millis();
+      } else {
+        if (millis() - pressedTime > 3000) {
+          tft.fillScreen(TFT_BLACK);
+          tft.fillScreen(TFT_BLACK);
+          tft.drawString("Dlouhý stisk",  50, tft.height() / 2 - 10);
+          tft.drawString("Go to Sleep",  53, tft.height() / 2 + 10);
+          Serial.println("Go to Sleep");
+          delay(3000);
+          tft.writecommand(ST7735_SLPIN);
+          tft.writecommand(ST7735_DISPOFF);
+          esp_sleep_enable_ext1_wakeup(GPIO_SEL_33, ESP_EXT1_WAKEUP_ANY_HIGH);
+          esp_deep_sleep_start();
+        }
+      }
+    } else {
+      pressed = false;
+    }
   
   // notify changed value
   if (deviceConnected) {
 
     tft.drawString("Connected",  tft.width() / 2 - 30, 0);
+    
 
     // vytvoření dočasné proměnné, do které je převedna zpráva na znaky
     char instrukceChar[instrukce.length() + 1];

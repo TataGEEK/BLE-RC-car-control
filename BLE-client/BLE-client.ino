@@ -1,5 +1,5 @@
 /* instrukce
- *  OVLADAČ
+ *  AUTÍČKO / OVLADAČ
  *  v TFT_eSPI-master/User_Setup_Select.h používám #include <User_Setups/Setup11_RPi_touch_ILI9486.h>
  *  vývojová deska ESP32 Pico Kit
  *  
@@ -322,8 +322,8 @@ void test(String notiData) {
   tft.setTextColor(TFT_RED);
   tft.setTextSize(6);
   tft.print(notiData);
-  
-  if (notiData == "L") {
+
+  if(notiData.indexOf("L") >= 0){
     tft.fillTriangle(10, 200, 40, 170, 40, 230, TFT_BLACK);
     tft.fillTriangle(150, 200, 120, 170, 120, 230, TFT_WHITE);
     tft.fillRect(50, 170, 60, 60, TFT_WHITE);
@@ -331,7 +331,7 @@ void test(String notiData) {
     digitalWrite(left, HIGH);
     digitalWrite(right, LOW);
   }
-  if (notiData == "R") {
+if(notiData.indexOf("R") >= 0){
     tft.fillTriangle(10, 200, 40, 170, 40, 230, TFT_WHITE);
     tft.fillTriangle(150, 200, 120, 170, 120, 230, TFT_BLACK);
     tft.fillRect(50, 170, 60, 60, TFT_WHITE);
@@ -339,23 +339,30 @@ void test(String notiData) {
     digitalWrite(left, LOW);
     digitalWrite(right, HIGH);
   }
-  if (notiData == "F") {
+if(notiData.indexOf("S") >= 0){
+    tft.fillTriangle(10, 200, 40, 170, 40, 230, TFT_WHITE);
+    tft.fillTriangle(150, 200, 120, 170, 120, 230, TFT_WHITE);
+    tft.fillRect(50, 170, 60, 60, TFT_WHITE);
+    Serial.println("STRAIGHT");
+    digitalWrite(left, LOW);
+    digitalWrite(right, LOW);
+  }
+if(notiData.indexOf("F") >= 0){
     tft.fillTriangle(10, 200, 40, 170, 40, 230, TFT_WHITE);
     tft.fillTriangle(150, 200, 120, 170, 120, 230, TFT_WHITE);
     tft.fillRect(50, 170, 60, 60, TFT_BLACK);
     Serial.println("FORWARD");
-    digitalWrite(left, LOW);
-    digitalWrite(right, LOW);
-  }
-
-  if (notiData == "G") {
-    Serial.println("GO");
     digitalWrite(go, HIGH);
     digitalWrite(back, LOW);
   }
-  if (notiData == "B") {
+if(notiData.indexOf("B") >= 0){
     Serial.println("BACK");
     digitalWrite(go, LOW);
     digitalWrite(back, HIGH);
+  }
+if(notiData.indexOf("H") >= 0){
+    Serial.println("HOLH");
+    digitalWrite(go, LOW);
+    digitalWrite(back, LOW);
   }
 }
